@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuerzaX — Física Extrema</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     FONDO FÍSICO: partículas + fórmulas flotantes
+     ═══════════════════════════════════════════ -->
+<canvas id="canvas-fondo"></canvas>
+<div id="formulas-flotantes" aria-hidden="true"></div>
+
+<!-- ═══════════════════════════════════════════
+     CONTROLES DE MÚSICA (esquina superior derecha)
+     ═══════════════════════════════════════════ -->
+<div id="controles-musica">
+    <!--
+        AUDIO: Pon tu archivo de música de fondo aquí.
+        Crea una carpeta "audio/" y coloca tu mp3 con el nombre musica-fondo.mp3
+        Luego descomenta la línea <source> de abajo.
+    -->
+    <audio id="musica-fondo" loop>
+        <!-- <source src="audio/musica-fondo.mp3" type="audio/mpeg"> -->
+    </audio>
+
+    <button id="btn-play-pause" title="Play / Pause música" onclick="toggleMusica()">▶</button>
+    <span class="musica-icono">🎵</span>
+    <input
+        type="range"
+        id="control-volumen"
+        min="0" max="1" step="0.05" value="0.5"
+        title="Volumen"
+        oninput="cambiarVolumen(this.value)"
+    >
+    <span id="volumen-label">50%</span>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FIZZY — siempre presente en pantalla
+     ═══════════════════════════════════════════ -->
+<div id="fizzy-wrapper">
+    <!--
+        IMAGEN: Reemplaza este emoji con tu imagen de Fizzy.
+        Crea images/fizzy.png y cambia la visibilidad del <img>.
+    -->
+    <div id="fizzy-avatar">
+        <img src="images/fizzy.png" alt="Fizzy" id="fizzy-img" onerror="this.style.display='none'">
+        <span id="fizzy-emoji">🤖</span>
+    </div>
+    <div id="fizzy-burbuja">
+        <div id="fizzy-nombre">Fizzy</div>
+        <p id="fizzy-texto">¡Bienvenido al universo de la Física!</p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     CONTENEDOR PRINCIPAL DEL JUEGO
+     ═══════════════════════════════════════════ -->
+<div id="game-container">
+
+    <!-- ─── PANTALLA 1: INICIO (nombre + bienvenida) ─── -->
+    <section id="pantalla-inicio" class="pantalla activa">
+
+        <div class="logo-area">
+            <!--
+                IMAGEN: Logo del juego.
+                Crea images/logo.png y el emoji desaparecerá automáticamente.
+            -->
+            <div class="img-placeholder" id="ph-logo">
+                <img src="images/logo.png" alt="FuerzaX Logo"
+                     onload="this.parentElement.classList.add('imagen-ok')"
+                     onerror="this.style.display='none'">
+                <div class="ph-label">📷 images/logo.png</div>
+            </div>
+            <h1 class="titulo-juego">⚡ FuerzaX</h1>
+            <p class="subtitulo">Física Extrema · La misión de las fuerzas ocultas</p>
+        </div>
+
+        <div class="card">
+            <h2>¿Cómo te llamas, explorador?</h2>
+            <input
+                type="text"
+                id="input-nombre"
+                placeholder="Escribe tu nombre..."
+                maxlength="20"
+                onkeydown="if(event.key==='Enter') guardarNombre()"
+            >
+            <button class="btn-principal" onclick="guardarNombre()">
+                ¡Iniciar misión! 🚀
+            </button>
+            <p class="nota">Tu progreso se guardará automáticamente.</p>
+        </div>
+
+        <!-- Aparece si hay progreso guardado -->
+        <div id="progreso-guardado" class="card oculto">
+            <p>📂 Se encontró progreso guardado de <strong id="nombre-guardado"></strong>.</p>
+            <div class="botones-fila">
+                <button class="btn-secundario" onclick="continuarPartida()">Continuar</button>
+                <button class="btn-peligro" onclick="nuevaPartida()">Nueva partida</button>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ─── PANTALLA 2: SELECCIÓN DE PERSONAJE ─── -->
+    <section id="pantalla-personaje" class="pantalla">
+
+        <h2 id="saludo-nombre" class="titulo-pantalla"></h2>
+        <p class="subtitulo">Elige tu explorador:</p>
+
+        <div class="avatares-grid">
+
+            <button class="btn-avatar" onclick="elegirPersonaje('Científico','🧑‍🔬')">
+                <!--
+                    IMAGEN: Personaje Científico.
+                    Crea images/cientifico.png
+                -->
+                <div class="img-placeholder-avatar">
+                    <img src="images/cientifico.png" alt="Científico"
+                         onload="this.parentElement.classList.add('imagen-ok')"
+                         onerror="this.style.display='none'">
+                    <span class="avatar-emoji">🧑‍🔬</span>
+                </div>
+                <span class="avatar-nombre">Científico</span>
+            </button>
+
+            <button class="btn-avatar" onclick="elegirPersonaje('Astronauta','🧑‍🚀')">
+                <!--
+                    IMAGEN: Personaje Astronauta.
+                    Crea images/astronauta.png
+                -->
+                <div class="img-placeholder-avatar">
+                    <img src="images/astronauta.png" alt="Astronauta"
+                         onload="this.parentElement.classList.add('imagen-ok')"
+                         onerror="this.style.display='none'">
+                    <span class="avatar-emoji">🧑‍🚀</span>
+                </div>
+                <span class="avatar-nombre">Astronauta</span>
+            </button>
+
+            <button class="btn-avatar" onclick="elegirPersonaje('Ingeniero','👷')">
+                <!--
+                    IMAGEN: Personaje Ingeniero.
+                    Crea images/ingeniero.png
+                -->
+                <div class="img-placeholder-avatar">
+                    <img src="images/ingeniero.png" alt="Ingeniero"
+                         onload="this.parentElement.classList.add('imagen-ok')"
+                         onerror="this.style.display='none'">
+                    <span class="avatar-emoji">👷</span>
+                </div>
+                <span class="avatar-nombre">Ingeniero</span>
+            </button>
+
+            <button class="btn-avatar" onclick="elegirPersonaje('Atleta','🏃')">
+                <!--
+                    IMAGEN: Personaje Atleta.
+                    Crea images/atleta.png
+                -->
+                <div class="img-placeholder-avatar">
+                    <img src="images/atleta.png" alt="Atleta"
+                         onload="this.parentElement.classList.add('imagen-ok')"
+                         onerror="this.style.display='none'">
+                    <span class="avatar-emoji">🏃</span>
+                </div>
+                <span class="avatar-nombre">Atleta</span>
+            </button>
+
+        </div>
+    </section>
+
+    <!-- ─── PANTALLA 3: LECCIÓN — LAS 3 LEYES DE NEWTON ─── -->
+    <section id="pantalla-leccion" class="pantalla">
+
+        <div class="lec-header">
+            <button class="btn-mini" onclick="mostrarPantalla('pantalla-personaje')">← Volver</button>
+            <span class="lec-titulo-top">⚡ Las 3 Leyes de Newton</span>
+            <div class="lec-dots" id="lec-dots"></div>
+        </div>
+
+        <!-- CARRUSEL de slides (una visible a la vez) -->
+        <div class="lec-viewport">
+        <div class="lec-track" id="lec-track">
+
+            <!-- ══════ SLIDE 1: Primera Ley — Inercia ══════ -->
+            <div class="ley-slide">
+                <div class="ley-badge badge-1">1ª Ley · Inercia</div>
+                <h2 class="ley-nombre">"Un objeto en movimiento<br>sigue moviéndose."</h2>
+
+                <!-- Escena animada CSS (sin imágenes) -->
+                <div class="escena-fisica escena-inercia" id="escena1" onclick="animarEscena(1)">
+                    <div class="escena-pista">
+                        <span class="e1-skater">🛹</span>
+                        <span class="e1-persona">🏄</span>
+                        <span class="e1-pared">🧱</span>
+                    </div>
+                    <div class="escena-bus-wrap">
+                        <span class="e1-bus">🚌</span>
+                        <span class="e1-viajero">🧍</span>
+                    </div>
+                    <div class="escena-tap">👆 Toca para animar</div>
+                </div>
+
+                <!-- PLACEHOLDER IMAGEN: ley1.png -->
+                <div class="media-placeholder">
+                    <div class="media-imagen img-placeholder">
+                        <img src="images/ley1.png" alt="Primera Ley"
+                             onload="this.parentElement.classList.add('imagen-ok')"
+                             onerror="this.style.display='none'">
+                        <div class="ph-label">📷 images/ley1.png</div>
+                    </div>
+                    <!-- PLACEHOLDER VIDEO: descomenta la opción que uses -->
+                    <div class="media-video video-ph">
+                        <div class="video-ph-inner">
+                            📹 <strong>Tu video aquí</strong><br>
+                            <code>&lt;!-- opción A: YouTube --&gt;<br>
+                            &lt;iframe src="https://youtube.com/embed/ID"&gt;&lt;/iframe&gt;<br><br>
+                            &lt;!-- opción B: archivo local --&gt;<br>
+                            &lt;video src="videos/ley1.mp4" controls&gt;&lt;/video&gt;</code>
+                            <!-- <iframe src="https://www.youtube.com/embed/TU_ID" width="100%" height="180" frameborder="0" allowfullscreen></iframe> -->
+                            <!-- <video src="videos/ley1.mp4" controls style="width:100%;border-radius:12px;"></video> -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Puntos clave (mínimo texto) -->
+                <div class="ley-puntos">
+                    <div class="punto-key pk1">🛹 En reposo → sigue en reposo</div>
+                    <div class="punto-key pk2">🚀 En movimiento → sigue moviéndose</div>
+                    <div class="punto-key pk3">🛑 Solo una fuerza puede cambiar eso</div>
+                </div>
+
+                <!-- Fórmula -->
+                <div class="formula-ley">
+                    <div class="formula-grande-ley">ΣF = 0</div>
+                    <div class="formula-desc-ley">Suma de fuerzas = 0 → velocidad constante</div>
+                    <div class="formula-ejemplo">Ejemplo: una pelota rueda sobre hielo sin fricción → nunca para</div>
+                </div>
+            </div>
+
+            <!-- ══════ SLIDE 2: Segunda Ley — F = ma ══════ -->
+            <div class="ley-slide">
+                <div class="ley-badge badge-2">2ª Ley · F = m · a</div>
+                <h2 class="ley-nombre">"Más fuerza → más aceleración.<br>Más masa → menos aceleración."</h2>
+
+                <!-- Escena animada CSS -->
+                <div class="escena-fisica escena-fma" id="escena2" onclick="animarEscena(2)">
+                    <div class="e2-carril">
+                        <div class="e2-fuerza">💪 F</div>
+                        <span class="e2-auto-ch">🚗</span>
+                        <span class="e2-flecha e2-flecha-ch">→→→→</span>
+                    </div>
+                    <div class="e2-carril">
+                        <div class="e2-fuerza">💪 F</div>
+                        <span class="e2-auto-gr">🚛</span>
+                        <span class="e2-flecha e2-flecha-gr">→</span>
+                    </div>
+                    <div class="escena-tap">👆 Toca para animar</div>
+                </div>
+
+                <!-- PLACEHOLDER IMAGEN: ley2.png -->
+                <div class="media-placeholder">
+                    <div class="media-imagen img-placeholder">
+                        <img src="images/ley2.png" alt="Segunda Ley"
+                             onload="this.parentElement.classList.add('imagen-ok')"
+                             onerror="this.style.display='none'">
+                        <div class="ph-label">📷 images/ley2.png</div>
+                    </div>
+                    <div class="media-video video-ph">
+                        <div class="video-ph-inner">
+                            📹 <strong>Tu video aquí</strong><br>
+                            <!-- <iframe src="https://www.youtube.com/embed/TU_ID" width="100%" height="180" frameborder="0" allowfullscreen></iframe> -->
+                            <!-- <video src="videos/ley2.mp4" controls style="width:100%;border-radius:12px;"></video> -->
+                            <code>&lt;iframe&gt; YouTube o &lt;video&gt; local</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ley-puntos">
+                    <div class="punto-key pk1">⚡ Más fuerza → más aceleración</div>
+                    <div class="punto-key pk2">🏋️ Más masa → menos aceleración</div>
+                    <div class="punto-key pk3">📐 a = F / m (con la misma fuerza)</div>
+                </div>
+
+                <div class="formula-ley">
+                    <div class="formula-grande-ley">F = m · a</div>
+                    <div class="formula-desc-ley">Fuerza (N) = Masa (kg) × Aceleración (m/s²)</div>
+                    <div class="formula-ejemplo">Ejemplo: 800 kg × 4 m/s² = 3 200 N de fuerza</div>
+                </div>
+            </div>
+
+            <!-- ══════ SLIDE 3: Tercera Ley — Acción y Reacción ══════ -->
+            <div class="ley-slide">
+                <div class="ley-badge badge-3">3ª Ley · Acción y Reacción</div>
+                <h2 class="ley-nombre">"Toda acción tiene una reacción<br>igual y opuesta."</h2>
+
+                <!-- Escena animada CSS -->
+                <div class="escena-fisica escena-ar" id="escena3" onclick="animarEscena(3)">
+                    <div class="e3-cohete-wrap">
+                        <span class="e3-cohete">🚀</span>
+                        <span class="e3-gas">🔥</span>
+                    </div>
+                    <div class="e3-nadador-wrap">
+                        <span class="e3-nadador">🏊</span>
+                        <span class="e3-agua">💧💧💧</span>
+                    </div>
+                    <div class="escena-tap">👆 Toca para animar</div>
+                </div>
+
+                <!-- PLACEHOLDER IMAGEN: ley3.png -->
+                <div class="media-placeholder">
+                    <div class="media-imagen img-placeholder">
+                        <img src="images/ley3.png" alt="Tercera Ley"
+                             onload="this.parentElement.classList.add('imagen-ok')"
+                             onerror="this.style.display='none'">
+                        <div class="ph-label">📷 images/ley3.png</div>
+                    </div>
+                    <div class="media-video video-ph">
+                        <div class="video-ph-inner">
+                            📹 <strong>Tu video aquí</strong><br>
+                            <!-- <iframe src="https://www.youtube.com/embed/TU_ID" width="100%" height="180" frameborder="0" allowfullscreen></iframe> -->
+                            <!-- <video src="videos/ley3.mp4" controls style="width:100%;border-radius:12px;"></video> -->
+                            <code>&lt;iframe&gt; YouTube o &lt;video&gt; local</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ley-puntos">
+                    <div class="punto-key pk1">🚀 Cohete: gas↓ → cohete↑</div>
+                    <div class="punto-key pk2">🏊 Nadador: empuja agua↑ → avanza↓</div>
+                    <div class="punto-key pk3">⚖️ Misma magnitud, dirección opuesta</div>
+                </div>
+
+                <div class="formula-ley">
+                    <div class="formula-grande-ley">F<sub>A→B</sub> = −F<sub>B→A</sub></div>
+                    <div class="formula-desc-ley">Las fuerzas actúan sobre cuerpos distintos</div>
+                    <div class="formula-ejemplo">Ejemplo: la manzana atrae a la Tierra con la misma fuerza con que la Tierra la atrae</div>
+                </div>
+            </div>
+
+        </div><!-- /lec-track -->
+        </div><!-- /lec-viewport -->
+
+        <!-- Navegación del carrusel -->
+        <div class="lec-nav">
+            <button class="btn-mini" id="btn-lec-ant" onclick="navLey(-1)" disabled>◀ Anterior</button>
+            <span id="lec-counter">1 / 3</span>
+            <button class="btn-lec-sig" id="btn-lec-sig" onclick="navLey(1)">Siguiente ▶</button>
+        </div>
+
+    </section><!-- /pantalla-leccion -->
+
+    <!-- ─── PANTALLA 4: JUEGO NEWTON ─── -->
+    <section id="pantalla-juego" class="pantalla">
+
+        <!-- HUD del juego -->
+        <div class="juego-hud">
+            <button class="btn-mini" onclick="mostrarPantalla('pantalla-leccion')">← Lección</button>
+            <div class="juego-progreso-wrap">
+                <div id="juego-barra"><div id="juego-barra-fill"></div></div>
+            </div>
+            <div class="juego-pts">⚡ <span id="juego-pts">0</span> pts</div>
+        </div>
+
+        <!-- Zona dinámica del reto activo -->
+        <div id="juego-zona"></div>
+
+        <!-- Navegación entre retos (aparece tras responder) -->
+        <div id="juego-sig-wrap" class="oculto">
+            <button class="btn-principal" id="btn-juego-sig" onclick="siguienteReto()">
+                Siguiente reto →
+            </button>
+        </div>
+
+    </section><!-- /pantalla-juego -->
+
+    <!-- ─── PANTALLA 5: MAPA DE MISIONES ─── -->
+
+    <section id="pantalla-mapa" class="pantalla">
+
+        <!-- HUD superior -->
+        <div id="hud">
+            <div id="hud-jugador">
+                <span id="hud-avatar"></span>
+                <span id="hud-nombre-hud"></span>
+            </div>
+            <div id="hud-stats">
+                <div class="stat">⚡ <span id="hud-energia">0</span></div>
+                <div class="stat">💎 <span id="hud-cristales">0</span></div>
+                <div class="stat">🏅 Nivel <span id="hud-nivel">1</span></div>
+            </div>
+            <button class="btn-mini" onclick="mostrarPantalla('pantalla-inicio')" title="Cambiar jugador">👤</button>
+        </div>
+
+        <!--
+            IMAGEN: Banner del mapa de misiones.
+            Crea images/banner-mapa.png
+        -->
+        <div class="img-placeholder" style="margin-bottom:18px;">
+            <img src="images/banner-mapa.png" alt="Banner Misiones"
+                 onload="this.parentElement.classList.add('imagen-ok')"
+                 onerror="this.style.display='none'">
+            <div class="ph-label">📷 images/banner-mapa.png (banner decorativo)</div>
+        </div>
+
+        <h2 class="titulo-pantalla">🗺️ Mapa de Misiones</h2>
+        <p class="subtitulo">Completa cada misión para desbloquear la siguiente.</p>
+
+        <div id="grid-misiones"></div>
+
+        <!-- Barra de progreso general -->
+        <div class="progreso-general">
+            <span>Progreso total:</span>
+            <div class="barra-contenedor">
+                <div id="barra-progreso-general"></div>
+            </div>
+            <span id="label-progreso-general">0 / 5</span>
+        </div>
+
+    </section>
+
+    <!-- ─── PANTALLA 4: MISIÓN ACTIVA ─── -->
+    <section id="pantalla-mision" class="pantalla">
+
+        <!-- Cabecera de misión -->
+        <div class="mision-cabecera">
+            <button class="btn-mini" onclick="mostrarPantalla('pantalla-mapa')">← Mapa</button>
+            <span id="mision-titulo-cab"></span>
+            <div class="mision-progreso-cab">
+                <div id="barra-mision"></div>
+            </div>
+        </div>
+
+        <!-- SUB-SECCIÓN: Introducción de misión -->
+        <div id="sub-intro">
+            <!--
+                IMAGEN: Ilustración de la misión (dinámica según misión activa).
+                Cada misión tiene su imagen. Ver arrays de misiones en script.js.
+                Nombrar: images/mision1.png, images/mision2.png … images/mision5.png
+            -->
+            <div class="img-placeholder" id="ph-mision-portada">
+                <img id="img-mision-portada" src="" alt="Portada misión"
+                     onload="this.parentElement.classList.add('imagen-ok')"
+                     onerror="this.style.display='none'">
+                <div class="ph-label" id="ph-mision-label">📷 images/misionX.png</div>
+            </div>
+
+            <div class="card" id="card-intro">
+                <div class="mision-tema-badge" id="intro-tema"></div>
+                <h2 id="intro-titulo"></h2>
+                <div class="vida-real" id="intro-vida-real"></div>
+                <p id="intro-concepto"></p>
+                <button class="btn-principal" onclick="iniciarQuiz()">
+                    ¡Comenzar reto! ⚡
+                </button>
+            </div>
+        </div>
+
+        <!-- SUB-SECCIÓN: Quiz -->
+        <div id="sub-quiz" class="oculto">
+            <div class="card" id="card-pregunta">
+                <div class="quiz-meta">
+                    <span id="quiz-contador"></span>
+                    <span id="quiz-puntaje-parcial">⚡ 0</span>
+                </div>
+                <p id="quiz-pregunta-texto" class="pregunta-texto"></p>
+
+                <!--
+                    IMAGEN: Imagen de apoyo para la pregunta (opcional).
+                    Crea images/preguntaX-Y.png (misiónX, preguntaY)
+                -->
+                <div class="img-placeholder" id="ph-pregunta">
+                    <img id="img-pregunta" src="" alt="Ilustración pregunta"
+                         onload="this.parentElement.classList.add('imagen-ok')"
+                         onerror="this.style.display='none'">
+                    <div class="ph-label" id="ph-pregunta-label">📷 Imagen de apoyo (opcional)</div>
+                </div>
+
+                <div id="opciones-container"></div>
+
+                <div id="feedback-respuesta" class="oculto">
+                    <div id="feedback-icono"></div>
+                    <p id="feedback-texto"></p>
+                    <p id="feedback-explicacion" class="explicacion-texto"></p>
+                    <button class="btn-principal" id="btn-siguiente" onclick="siguientePregunta()">
+                        Siguiente →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ─── PANTALLA 5: RESULTADO DE MISIÓN ─── -->
+    <section id="pantalla-resultado" class="pantalla">
+
+        <div class="card resultado-card" id="resultado-contenido">
+            <!-- Contenido dinámico generado por JS -->
+        </div>
+
+        <!--
+            IMAGEN: Imagen de celebración (resultado positivo).
+            Crea images/celebracion.png
+        -->
+        <div class="img-placeholder" id="ph-celebracion">
+            <img src="images/celebracion.png" alt="¡Celebración!"
+                 onload="this.parentElement.classList.add('imagen-ok')"
+                 onerror="this.style.display='none'">
+            <div class="ph-label">📷 images/celebracion.png</div>
+        </div>
+
+        <div class="botones-resultado">
+            <button class="btn-principal" onclick="mostrarPantalla('pantalla-mapa')">
+                🗺️ Volver al mapa
+            </button>
+        </div>
+
+    </section>
+
+</div><!-- /game-container -->
+
+<!-- Efecto confeti (generado por JS) -->
+<div id="confeti-container" aria-hidden="true"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
